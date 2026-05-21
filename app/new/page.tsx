@@ -11,11 +11,14 @@ import { createInvoice, updateInvoice as updateInvoiceDB, getNextNumber } from '
 import ScreenHeader from '@/components/ScreenHeader';
 import SFab from '@/components/SFab';
 import BottomSheet from '@/components/BottomSheet';
+import SignaturePad from '@/components/SignaturePad';
 
 import EditFormPanel from './_components/EditFormPanel';
 import DocPreviewCard from './_components/DocPreviewCard';
 import EditBottomBar from './_components/EditBottomBar';
 import DoneBottomBar from './_components/DoneBottomBar';
+
+type SignSlot = 'from' | 'driver' | null;
 
 type Phase = 'edit' | 'done';
 type Tab = 'form' | 'preview';
@@ -37,6 +40,8 @@ export default function NewPage() {
   const [vehicle,    setVehicle]    = useState('');
   const [driver,     setDriver]     = useState('');
   const [items,      setItems]      = useState<InvoiceItem[]>([]);
+  const [signatureFrom,   setSignatureFrom]   = useState<string>('');
+  const [signatureDriver, setSignatureDriver] = useState<string>('');
 
   // ── UI state ───────────────────────────────────────────────────
   const [phase, setPhase] = useState<Phase>('edit');
@@ -44,6 +49,7 @@ export default function NewPage() {
   const [sheetOpen,   setSheetOpen]   = useState(false);
   const [editingItem, setEditingItem] = useState<InvoiceItem | null>(null);
   const [saved, setSaved] = useState(false);
+  const [signSlot, setSignSlot] = useState<SignSlot>(null);
 
   // Authoritative number from server
   useEffect(() => {
@@ -52,7 +58,8 @@ export default function NewPage() {
 
   const totalQty = computeTotal(items);
   const invoice = {
-    id: savedId, number, date, fromPerson, vehicle, driver, items,
+    id: savedId, number, date, fromPerson, vehicle, driver,
+    signatureFrom, signatureDriver, items,
     status: 'draft' as const, createdAt: '', updatedAt: '',
   };
 
@@ -75,9 +82,19 @@ export default function NewPage() {
       setSaved(true);
       await createInvoice(inv);
     } else {
-      const patch = { fromPerson, vehicle, driver, items };
+      const patch = { fromPerson, vehicle, driver, signatureFrom, signatureDriver, items };
       updateInvoice(savedId, patch);
       await updateInvoiceDB(savedId, patch);
+    }
+  }
+
+  async function saveSignature(slot: 'from' | 'driver', svg: string) {
+    if (slot === 'from')  setSignatureFrom(svg);
+    if (slot === 'driver') setSignatureDriver(svg);
+    if (saved) {
+      const patch = slot === 'from' ? { signatureFrom: svg } : { signatureDriver: svg };
+      updateInvoice(savedId, patch);
+      await updateInvoiceDB(savedId, patch).catch(() => {});
     }
   }
 
@@ -168,12 +185,25 @@ export default function NewPage() {
           pointerEvents: doneVisible ? 'auto' : 'none',
           transition: TRANS,
         }}>
-          <DocPreviewCard invoice={invoice} shadow="lg" />
+          <DocPreviewCard
+            invoice={invoice}
+            shadow="lg"
+            onSignFrom={() => setSignSlot('from')}
+            onSignDriver={() => setSignSlot('driver')}
+          />
         </div>
       </div>
 
       <EditBottomBar visible={editVisible} itemsCount={items.length} totalQty={totalQty} onDone={handleDone} />
       <DoneBottomBar visible={doneVisible} number={number} />
+
+      <SignaturePad
+        open={signSlot !== null}
+        title={signSlot === 'from' ? 'Подпись передавшего' : 'Подпись водителя'}
+        initial={signSlot === 'from' ? signatureFrom : signatureDriver}
+        onClose={() => setSignSlot(null)}
+        onSave={svg => { if (signSlot) saveSignature(signSlot, svg); }}
+      />
 
       <SFab
         onClick={() => setSheetOpen(true)}

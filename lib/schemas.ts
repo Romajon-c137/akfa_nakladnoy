@@ -11,25 +11,35 @@ export const InvoiceItemSchema = z.object({
 const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'date must be YYYY-MM-DD');
 const isoDateTime = z.string().datetime({ offset: true }).or(z.string().datetime());
 
+/** SVG path data — only `M`, `L`, digits, spaces, dots, minus, commas allowed */
+const SignaturePath = z
+  .string()
+  .max(50_000)
+  .regex(/^[ML\d\s.,\-]*$/, 'invalid SVG path characters');
+
 export const InvoiceSchema = z.object({
-  id:         z.string().trim().min(1).max(50),
-  number:     z.string().trim().min(1).max(10),
-  date:       isoDate,
-  fromPerson: z.string().trim().max(100).optional().default(''),
-  vehicle:    z.string().trim().max(30).optional().default(''),
-  driver:     z.string().trim().max(60).optional().default(''),
-  items:      z.array(InvoiceItemSchema).max(100),
-  status:     InvoiceStatusSchema.default('draft'),
-  createdAt:  isoDateTime,
-  updatedAt:  isoDateTime,
+  id:              z.string().trim().min(1).max(50),
+  number:          z.string().trim().min(1).max(10),
+  date:            isoDate,
+  fromPerson:      z.string().trim().max(100).optional().default(''),
+  vehicle:         z.string().trim().max(30).optional().default(''),
+  driver:          z.string().trim().max(60).optional().default(''),
+  signatureFrom:   SignaturePath.optional().default(''),
+  signatureDriver: SignaturePath.optional().default(''),
+  items:           z.array(InvoiceItemSchema).max(100),
+  status:          InvoiceStatusSchema.default('draft'),
+  createdAt:       isoDateTime,
+  updatedAt:       isoDateTime,
 });
 
 export const InvoicePatchSchema = z.object({
-  fromPerson: z.string().trim().max(100).optional(),
-  vehicle:    z.string().trim().max(30).optional(),
-  driver:     z.string().trim().max(60).optional(),
-  status:     InvoiceStatusSchema.optional(),
-  items:      z.array(InvoiceItemSchema).max(100).optional(),
+  fromPerson:      z.string().trim().max(100).optional(),
+  vehicle:         z.string().trim().max(30).optional(),
+  driver:          z.string().trim().max(60).optional(),
+  signatureFrom:   SignaturePath.optional(),
+  signatureDriver: SignaturePath.optional(),
+  status:          InvoiceStatusSchema.optional(),
+  items:           z.array(InvoiceItemSchema).max(100).optional(),
 });
 
 export const InvoiceIdSchema = z.string().trim().min(1).max(50);

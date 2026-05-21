@@ -1,15 +1,20 @@
 import React from 'react';
 import Image from 'next/image';
-import { Invoice } from '@/lib/types';
+import { Pencil } from 'lucide-react';
+import { Invoice, SIGNATURE_VIEWBOX } from '@/lib/types';
 
 type Props = {
   invoice?: Partial<Invoice>;
   scale?: number;
+  /** When provided, "Передал" line becomes clickable to open signature pad */
+  onSignFrom?: () => void;
+  /** When provided, "Водитель" line becomes clickable to open signature pad */
+  onSignDriver?: () => void;
 };
 
 const INFO_BLUE = '#1a56c4';
 
-export default function NakladnayaDocument({ invoice, scale = 1 }: Props) {
+export default function NakladnayaDocument({ invoice, scale = 1, onSignFrom, onSignDriver }: Props) {
   const s = scale;
   const items = invoice?.items ?? [];
   const totalQty = items.reduce((sum, it) => sum + it.qty, 0);
@@ -143,24 +148,102 @@ export default function NakladnayaDocument({ invoice, scale = 1 }: Props) {
       <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: 14 * s, fontSize: 13 * s, paddingTop: 16 * s }}>
         <div style={{ display: 'flex', gap: 12 * s, alignItems: 'flex-end' }}>
           <span style={{ whiteSpace: 'nowrap' }}>Машина:</span>
-          <span style={{ flex: 1, borderBottom: `1px solid var(--ink)`, paddingBottom: 3 * s }}>
-            {invoice?.vehicle ?? ''}
-          </span>
+          <PlainLine s={s} flex={1} value={invoice?.vehicle ?? ''} />
           <span style={{ whiteSpace: 'nowrap' }}>Водитель:</span>
-          <span style={{ flex: 1.6, borderBottom: `1px solid var(--ink)`, paddingBottom: 3 * s }}>
-            {invoice?.driver ?? ''}
-          </span>
+          <SignatureLine
+            s={s}
+            flex={1.6}
+            value={invoice?.driver ?? ''}
+            signature={invoice?.signatureDriver}
+            onSign={onSignDriver}
+          />
         </div>
         <div style={{ display: 'flex', gap: 12 * s, alignItems: 'flex-end' }}>
           <span style={{ whiteSpace: 'nowrap' }}>Передал:</span>
-          <span style={{ flex: 1, borderBottom: `1px solid var(--ink)`, paddingBottom: 3 * s }}>
-            {invoice?.fromPerson ?? ''}
-          </span>
+          <SignatureLine
+            s={s}
+            flex={1}
+            value={invoice?.fromPerson ?? ''}
+            signature={invoice?.signatureFrom}
+            onSign={onSignFrom}
+          />
           <span style={{ whiteSpace: 'nowrap' }}>Получил:</span>
-          <span style={{ flex: 1, borderBottom: `1px solid var(--ink)`, paddingBottom: 3 * s }} />
+          <PlainLine s={s} flex={1} value="" />
         </div>
       </div>
     </div>
+  );
+}
+
+/* ── Footer line variants ──────────────────────────────────── */
+
+function PlainLine({ s, flex, value }: { s: number; flex: number; value: string }) {
+  return (
+    <span style={{ flex, borderBottom: `1px solid var(--ink)`, paddingBottom: 3 * s, minWidth: 0 }}>
+      {value}
+    </span>
+  );
+}
+
+function SignatureLine({
+  s, flex, value, signature, onSign,
+}: {
+  s: number; flex: number; value: string; signature?: string; onSign?: () => void;
+}) {
+  const interactive = !!onSign;
+  const lineMinHeight = Math.max(28 * s, 24);
+
+  return (
+    <span
+      onClick={onSign}
+      role={interactive ? 'button' : undefined}
+      tabIndex={interactive ? 0 : undefined}
+      style={{
+        flex,
+        position: 'relative',
+        borderBottom: `1px solid var(--ink)`,
+        paddingBottom: 3 * s,
+        minHeight: lineMinHeight,
+        minWidth: 0,
+        cursor: interactive ? 'pointer' : undefined,
+        display: 'block',
+      }}
+    >
+      {/* Typed name (underneath signature) */}
+      <span style={{ position: 'relative', zIndex: 1 }}>{value}</span>
+
+      {/* Signature SVG overlay (above name, anchored to bottom) */}
+      {signature && (
+        <svg
+          viewBox={`0 0 ${SIGNATURE_VIEWBOX.w} ${SIGNATURE_VIEWBOX.h}`}
+          preserveAspectRatio="xMidYMax meet"
+          style={{
+            position: 'absolute', left: 0, right: 0, bottom: 0,
+            width: '100%', height: 'auto', maxHeight: lineMinHeight * 2.4,
+            pointerEvents: 'none',
+            zIndex: 2,
+          }}
+        >
+          <path d={signature} fill="none" stroke="var(--ink)" strokeWidth={2.2}
+                strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      )}
+
+      {/* "Tap to sign" hint — only when no signature and interactive (hidden on print) */}
+      {interactive && !signature && (
+        <span
+          className="no-print"
+          style={{
+            position: 'absolute', right: 4, bottom: 4,
+            display: 'inline-flex', alignItems: 'center', gap: 3,
+            fontSize: 10, color: 'var(--pencil)', fontStyle: 'italic',
+            pointerEvents: 'none',
+          }}
+        >
+          <Pencil size={11} /> подпись
+        </span>
+      )}
+    </span>
   );
 }
 

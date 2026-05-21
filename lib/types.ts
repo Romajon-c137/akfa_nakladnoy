@@ -13,11 +13,18 @@ export type Invoice = {
   fromPerson?: string;
   vehicle?: string;
   driver?: string;
+  /** SVG path data for "Передал" signature, drawn in 400×150 viewBox */
+  signatureFrom?: string;
+  /** SVG path data for "Водитель" signature, drawn in 400×150 viewBox */
+  signatureDriver?: string;
   items: InvoiceItem[];
   status: InvoiceStatus;
   createdAt: string;
   updatedAt: string;
 };
+
+/** Logical canvas dimensions for signature SVG paths */
+export const SIGNATURE_VIEWBOX = { w: 400, h: 150 } as const;
 
 export type CatalogItem = {
   sku: string;

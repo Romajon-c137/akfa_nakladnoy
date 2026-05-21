@@ -10,13 +10,17 @@ import WhatsAppIcon from '@/components/WhatsAppIcon';
 import ScreenHeader from '@/components/ScreenHeader';
 import NakladnayaDocument from '@/components/NakladnayaDocument';
 import SPill from '@/components/SPill';
+import SignaturePad from '@/components/SignaturePad';
+
+type SignSlot = 'from' | 'driver' | null;
 
 export default function InvoicePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
-  const { invoices, deleteInvoice, addInvoice } = useStore();
+  const { invoices, deleteInvoice, addInvoice, updateInvoice } = useStore();
   const [zoom, setZoom] = useState(1);
   const [fetchTried, setFetchTried] = useState(false);
+  const [signSlot, setSignSlot] = useState<SignSlot>(null);
 
   const [waLoading,   setWaLoading]   = useState(false);
   const [menuOpen,    setMenuOpen]    = useState(false);
@@ -113,7 +117,11 @@ export default function InvoicePage({ params }: { params: Promise<{ id: string }
             transform: `scale(${zoom})`,
           }}
         >
-          <NakladnayaDocument invoice={invoice} />
+          <NakladnayaDocument
+            invoice={invoice}
+            onSignFrom={() => setSignSlot('from')}
+            onSignDriver={() => setSignSlot('driver')}
+          />
         </div>
       </div>
 
@@ -286,6 +294,19 @@ export default function InvoicePage({ params }: { params: Promise<{ id: string }
           </div>
         </div>
       )}
+
+      <SignaturePad
+        open={signSlot !== null}
+        title={signSlot === 'from' ? 'Подпись передавшего' : 'Подпись водителя'}
+        initial={signSlot === 'from' ? invoice?.signatureFrom : invoice?.signatureDriver}
+        onClose={() => setSignSlot(null)}
+        onSave={async svg => {
+          if (!signSlot || !invoice) return;
+          const patch = signSlot === 'from' ? { signatureFrom: svg } : { signatureDriver: svg };
+          updateInvoice(invoice.id, patch);
+          await updateInvoiceDB(invoice.id, patch).catch(() => {});
+        }}
+      />
     </div>
   );
 }
