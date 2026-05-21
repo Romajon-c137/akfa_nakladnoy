@@ -1,0 +1,30 @@
+# dependencies
+node_modules/
+
+# Next.js build output
+.next/
+out/
+
+# env (secrets)
+.env
+.env.local
+.env*.local
+
+# logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Claude local memory & settings
+.claude/
+
+# misc
+*.tsbuildinfo
+next-env.d.ts

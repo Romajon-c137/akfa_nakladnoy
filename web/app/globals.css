@@ -1,0 +1,191 @@
+:root {
+  --ink: #0a0a0a;
+  --ink-soft: #3a3a3a;
+  --pencil: #8a8a8a;
+  --pencil-light: #d6d6d6;
+  --border: #d6d6d6;
+  --paper: #ffffff;
+  --paper-dim: #f5f6f7;
+  --paper-deep: #eceef0;
+  --accent: #EE3626;
+  --accent-tint: #fff5f3;
+  --accent-soft: #fde6e3;
+  --font-ui: 'Inter', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', system-ui, sans-serif;
+  --font-mono: 'SF Mono', 'Menlo', 'Consolas', 'Roboto Mono', monospace;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { height: 100%; }
+
+body {
+  min-height: 100%;
+  font-family: var(--font-ui);
+  color: var(--ink);
+  background: var(--paper-dim);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+a { color: inherit; text-decoration: none; }
+
+button { font-family: inherit; cursor: pointer; border: none; background: none; }
+
+input, textarea {
+  font-family: inherit;
+  outline: none;
+  border: none;
+  background: none;
+}
+
+/* Bottom sheet backdrop */
+.sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 10, 10, 0.45);
+  z-index: 40;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+  pointer-events: none;
+}
+.sheet-backdrop.open {
+  opacity: 1;
+  pointer-events: all;
+}
+
+/* Bottom sheet panel */
+.sheet-panel {
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  background: #fff;
+  border-top-left-radius: 24px;
+  border-top-right-radius: 24px;
+  box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.18);
+  z-index: 50;
+  transform: translateY(100%);
+  transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+  max-width: 390px;
+  margin: 0 auto;
+}
+.sheet-panel.open {
+  transform: translateY(0);
+}
+
+/* Scrollable area within the phone shell */
+.scroll-area {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* FAB hide on scroll down */
+.fab-wrap {
+  position: fixed;
+  right: 18px;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+.fab-wrap.hidden {
+  transform: translateY(16px);
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Swipe-to-delete reveal */
+.item-row-wrap {
+  position: relative;
+  overflow: hidden;
+}
+.item-row-delete {
+  position: absolute;
+  right: 0; top: 0; bottom: 0;
+  width: 72px;
+  background: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  transform: translateX(100%);
+  transition: transform 0.18s ease;
+}
+
+/* Transitions */
+.fade-in {
+  animation: fadeInUp 0.2s ease both;
+}
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(8px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── A4 Print ── */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 0;   /* document itself provides padding */
+  }
+
+  html, body {
+    width: 210mm !important;
+    height: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #fff !important;
+    overflow: hidden !important;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  /* Remove app wrapper 390px constraint */
+  body > div {
+    width: 210mm !important;
+    max-width: 210mm !important;
+    height: auto !important;
+    overflow: hidden !important;
+    position: static !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  /* Hide all UI chrome */
+  .no-print { display: none !important; }
+
+  /* Remove every shadow, scrollbar */
+  * { box-shadow: none !important; text-shadow: none !important; }
+  ::-webkit-scrollbar { display: none !important; }
+
+  /* Kill gray backgrounds */
+  div { background: transparent !important; }
+
+  /* Scroll container → static, no overflow, no padding */
+  .print-scroll {
+    position: static !important;
+    overflow: hidden !important;
+    height: auto !important;
+    padding: 0 !important;
+    transform: none !important;
+    opacity: 1 !important;
+  }
+
+  /* Document wrapper → reset transform from zoom control */
+  .print-doc-wrap {
+    transform: none !important;
+    overflow: visible !important;
+    padding: 0 !important;
+    width: 100% !important;
+  }
+
+  /* Document fills full A4, footer pushed to bottom */
+  #nakladnaya-doc {
+    width: 210mm !important;
+    min-height: 297mm !important;
+    padding: 10mm !important;
+    background: #fff !important;
+    box-sizing: border-box !important;
+    display: flex !important;
+    flex-direction: column !important;
+  }
+}
