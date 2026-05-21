@@ -3,13 +3,6 @@
 import { create } from 'zustand';
 import { Invoice, InvoiceStatus } from './types';
 
-function nextNumber(invoices: Invoice[]): string {
-  if (invoices.length === 0) return '60';
-  const nums = invoices.map(i => parseInt(i.number, 10)).filter(n => !isNaN(n));
-  if (nums.length === 0) return '60';
-  return String(Math.max(60, Math.max(...nums) + 1));
-}
-
 type Store = {
   invoices: Invoice[];
   loading: boolean;
@@ -19,10 +12,9 @@ type Store = {
   updateInvoice: (id: string, patch: Partial<Invoice>) => void;
   deleteInvoice: (id: string) => void;
   setStatus: (id: string, status: InvoiceStatus) => void;
-  nextNumber: () => string;
 };
 
-export const useStore = create<Store>((set, get) => ({
+export const useStore = create<Store>((set) => ({
   invoices: [],
   loading: true,
 
@@ -52,8 +44,6 @@ export const useStore = create<Store>((set, get) => ({
         inv.id === id ? { ...inv, status, updatedAt: new Date().toISOString() } : inv
       ),
     })),
-
-  nextNumber: () => nextNumber(get().invoices),
 }));
 
 export function computeTotal(items: Invoice['items']): number {

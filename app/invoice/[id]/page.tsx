@@ -1,24 +1,22 @@
 'use client';
 
-import { use, useRef, useState } from 'react';
+import { use, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useStore } from '@/lib/store';
 import { ChevronLeft, MoreHorizontal, Download, Printer, Loader2, ZoomIn, ZoomOut, Trash2, X } from 'lucide-react';
-import { softDeleteInvoice, updateInvoice as updateInvoiceDB } from '@/lib/actions';
+import { softDeleteInvoice, updateInvoice as updateInvoiceDB, getInvoiceById } from '@/lib/actions';
 import { shareInvoicePDF } from '@/lib/pdf';
 import WhatsAppIcon from '@/components/WhatsAppIcon';
 import ScreenHeader from '@/components/ScreenHeader';
 import NakladnayaDocument from '@/components/NakladnayaDocument';
 import SPill from '@/components/SPill';
 
-// Unique key for rate-limiting (per page load, prevents trivial replay)
-const SESSION_KEY = Math.random().toString(36).slice(2);
-
 export default function InvoicePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
-  const { invoices, deleteInvoice } = useStore();
+  const { invoices, deleteInvoice, addInvoice } = useStore();
   const [zoom, setZoom] = useState(1);
+  const [fetchTried, setFetchTried] = useState(false);
 
   const [waLoading,   setWaLoading]   = useState(false);
   const [menuOpen,    setMenuOpen]    = useState(false);
@@ -30,6 +28,20 @@ export default function InvoicePage({ params }: { params: Promise<{ id: string }
   const pinRef = useRef<HTMLInputElement>(null);
 
   const invoice = invoices.find(i => i.id === id && i.status !== 'deleted');
+
+  // Reset fetch flag when navigating to a different invoice
+  useEffect(() => { setFetchTried(false); }, [id]);
+
+  // If invoice not in store (direct nav / refresh), fetch by id from server
+  useEffect(() => {
+    if (invoice || fetchTried) return;
+    setFetchTried(true);
+    let cancelled = false;
+    getInvoiceById(id).then(inv => {
+      if (!cancelled && inv) addInvoice(inv);
+    });
+    return () => { cancelled = true; };
+  }, [invoice, id, addInvoice, fetchTried]);
 
   function openDeleteModal() {
     setMenuOpen(false);
@@ -44,7 +56,7 @@ export default function InvoicePage({ params }: { params: Promise<{ id: string }
     if (!invoice || pinLocked || deleting) return;
     setDeleting(true);
     setPinError(null);
-    const res = await softDeleteInvoice(invoice.id, pin, SESSION_KEY);
+    const res = await softDeleteInvoice(invoice.id, pin);
     setDeleting(false);
     if (res.ok) {
       deleteInvoice(invoice.id);
@@ -62,8 +74,14 @@ export default function InvoicePage({ params }: { params: Promise<{ id: string }
   if (!invoice) {
     return (
       <div style={{ height: '100dvh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12, color: 'var(--pencil)' }}>
-        <div style={{ fontSize: 14, fontWeight: 500 }}>Накладная не найдена</div>
-        <SPill variant="ghost" onClick={() => router.push('/')}>← Назад</SPill>
+        {fetchTried ? (
+          <>
+            <div style={{ fontSize: 14, fontWeight: 500 }}>Накладная не найдена</div>
+            <SPill variant="ghost" onClick={() => router.push('/')}>← Назад</SPill>
+          </>
+        ) : (
+          <Loader2 size={28} strokeWidth={1.5} style={{ animation: 'spin 1s linear infinite' }} />
+        )}
       </div>
     );
   }

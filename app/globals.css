@@ -178,11 +178,17 @@ input, textarea {
     width: 100% !important;
   }
 
-  /* Document fills full A4, footer pushed to bottom */
+  /* Reset padding on any wrapper between .print-scroll and the doc */
+  .print-scroll > div {
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  /* Document fills full A4, footer pushed to bottom via margin-top: auto */
   #nakladnaya-doc {
     width: 210mm !important;
     min-height: 297mm !important;
-    padding: 10mm !important;
+    padding: 10mm 10mm 28mm 10mm !important;
     background: #fff !important;
     box-sizing: border-box !important;
     display: flex !important;

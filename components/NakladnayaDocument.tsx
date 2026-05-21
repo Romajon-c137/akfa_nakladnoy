@@ -12,7 +12,7 @@ const INFO_BLUE = '#1a56c4';
 export default function NakladnayaDocument({ invoice, scale = 1 }: Props) {
   const s = scale;
   const items = invoice?.items ?? [];
-  const emptyRows = Math.max(0, 12 - items.length);
+  const totalQty = items.reduce((sum, it) => sum + it.qty, 0);
 
   const dateStr = (() => {
     if (!invoice?.date) return { day: '  ', month: '      ' };
@@ -23,8 +23,8 @@ export default function NakladnayaDocument({ invoice, scale = 1 }: Props) {
     };
   })();
 
-  // Grid: №  | Наименование | Кол-во (wider) | Цена | Сумма
-  const cols = `${28 * s}px 1fr ${58 * s}px ${50 * s}px ${54 * s}px`;
+  // Grid: Наименование | Кол-во | Цена | Сумма
+  const cols = `1fr ${78 * s}px ${78 * s}px ${92 * s}px`;
 
   return (
     <div
@@ -62,7 +62,7 @@ export default function NakladnayaDocument({ invoice, scale = 1 }: Props) {
       <div style={{
         display: 'flex', flexWrap: 'wrap', justifyContent: 'center',
         gap: `${3 * s}px ${14 * s}px`,
-        fontSize: 8.5 * s, color: INFO_BLUE,
+        fontSize: 10 * s, color: INFO_BLUE,
         paddingTop: 2 * s, lineHeight: 1.4, textAlign: 'center',
       }}>
         <span>тел.: +996 997 000 571; +996 226 400 400</span>
@@ -71,21 +71,21 @@ export default function NakladnayaDocument({ invoice, scale = 1 }: Props) {
       </div>
 
       {/* Date */}
-      <div style={{ display: 'flex', justifyContent: 'flex-end', fontSize: 10 * s, marginTop: 4 * s }}>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', fontSize: 12 * s, marginTop: 4 * s }}>
         {`Дата: «${dateStr.day}» ${dateStr.month} 2026 г.`}
       </div>
 
       {/* Title */}
       <div style={{
-        textAlign: 'center', fontSize: 15 * s, fontWeight: 700,
+        textAlign: 'center', fontSize: 18 * s, fontWeight: 700,
         margin: `${6 * s}px 0 ${4 * s}px`,
-        textTransform: 'uppercase',
+        textTransform: 'uppercase', letterSpacing: 3 * s,
       }}>
         {'Накладная  №  '}
         <span style={{
           borderBottom: `1px solid var(--ink)`,
-          padding: `0 ${18 * s}px`,
-          fontFamily: 'var(--font-mono)', fontWeight: 700, 
+          padding: `0 ${22 * s}px`,
+          fontFamily: 'var(--font-mono)', fontWeight: 700, letterSpacing: 0,
         }}>
           {invoice?.number ?? '      '}
         </span>
@@ -93,33 +93,54 @@ export default function NakladnayaDocument({ invoice, scale = 1 }: Props) {
 
       {/* Table */}
       <div style={{ border: `1.2px solid var(--ink)` }}>
-        <div style={{ display: 'grid', gridTemplateColumns: cols, fontWeight: 700, borderBottom: `1.2px solid var(--ink)` }}>
-          <Cell s={s} br head center>№</Cell>
+        {/* Header row */}
+        <div style={{ display: 'grid', gridTemplateColumns: cols, borderBottom: `1.2px solid var(--ink)` }}>
           <Cell s={s} br head namecol>Наименование</Cell>
           <Cell s={s} br head center>Кол-во</Cell>
           <Cell s={s} br head center>Цена</Cell>
           <Cell s={s} head center>Сумма</Cell>
         </div>
 
+        {/* Data rows */}
         {items.map((item, i) => (
-          <div key={item.id} style={{ display: 'grid', gridTemplateColumns: cols, borderBottom: `1px solid var(--ink)`, minHeight: 20 * s }}>
-            <Cell s={s} br mono center>{String(i + 1).padStart(3, '0')}</Cell>
-            <Cell s={s} br mono namecol>{item.sku}</Cell>
-            <Cell s={s} br mono center>{item.qty}</Cell>
+          <div
+            key={item.id}
+            style={{
+              display: 'grid',
+              gridTemplateColumns: cols,
+              borderBottom: i < items.length - 1 ? `1px solid var(--ink)` : 'none',
+              minHeight: 26 * s,
+            }}
+          >
+            <Cell s={s} br mono namecol>{item.sku.replace(/\*/g, '×')}</Cell>
+            <Cell s={s} br mono right>{item.qty} шт</Cell>
             <Cell s={s} br mono right />
             <Cell s={s} mono right />
           </div>
         ))}
 
-        {Array.from({ length: emptyRows }).map((_, i) => (
-          <div key={`e${i}`} style={{ display: 'grid', gridTemplateColumns: cols, borderBottom: i < emptyRows - 1 ? `1px solid var(--ink)` : 'none', minHeight: 20 * s }}>
-            <Cell s={s} br /><Cell s={s} br /><Cell s={s} br /><Cell s={s} br /><Cell s={s} />
+        {/* Итого */}
+        {items.length > 0 && (
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: cols,
+              borderTop: `1.2px solid var(--ink)`,
+              background: '#f5f5f5',
+              fontWeight: 700,
+              minHeight: 28 * s,
+            }}
+          >
+            <Cell s={s} br namecol bold>Итого</Cell>
+            <Cell s={s} br mono right bold>{totalQty} шт</Cell>
+            <Cell s={s} br right bold />
+            <Cell s={s} right bold />
           </div>
-        ))}
+        )}
       </div>
 
       {/* Footer */}
-      <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: 14 * s, fontSize: 12 * s, paddingTop: 16 * s }}>
+      <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: 14 * s, fontSize: 13 * s, paddingTop: 16 * s }}>
         <div style={{ display: 'flex', gap: 12 * s, alignItems: 'flex-end' }}>
           <span style={{ whiteSpace: 'nowrap' }}>Машина:</span>
           <span style={{ flex: 1, borderBottom: `1px solid var(--ink)`, paddingBottom: 3 * s }}>
@@ -144,21 +165,19 @@ export default function NakladnayaDocument({ invoice, scale = 1 }: Props) {
 }
 
 function Cell({
-  children, s, br, mono, center, right, head, namecol,
+  children, s, br, mono, center, right, head, namecol, bold,
 }: {
   children?: React.ReactNode;
   s: number; br?: boolean; mono?: boolean;
-  center?: boolean; right?: boolean; head?: boolean; namecol?: boolean;
+  center?: boolean; right?: boolean; head?: boolean; namecol?: boolean; bold?: boolean;
 }) {
-
-
   return (
     <div style={{
-      padding: `${4 * s}px ${5 * s}px`,
+      padding: `${4 * s}px ${8 * s}px`,
       borderRight: br ? `1px solid var(--ink)` : 'none',
       fontFamily: mono ? 'var(--font-mono)' : 'var(--font-ui)',
-      fontSize: 16,
-      fontWeight: head ? 700 : 400,
+      fontSize: head ? 13 * s : 13.5 * s,
+      fontWeight: head || bold ? 700 : 400,
       textAlign: center ? 'center' : right ? 'right' : 'left',
       display: 'flex', alignItems: 'center',
       justifyContent: center ? 'center' : right ? 'flex-end' : 'flex-start',

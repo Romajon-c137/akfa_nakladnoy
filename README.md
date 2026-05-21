@@ -1,36 +1,64 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# akfa Nakladnaya
 
-## Getting Started
+Mobile-first PWA для создания и печати накладных Glass Center. Next.js 16 + React 19 + MongoDB.
 
-First, run the development server:
+## Запуск локально
 
-```bash
+```powershell
+npm install
+cp .env.example .env.local      # заполни переменные
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Откроется на http://localhost:3000.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Переменные окружения
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Файл `.env.local` (не коммитится):
 
-## Learn More
+| Ключ          | Назначение                          |
+|---------------|-------------------------------------|
+| `MONGODB_URI` | Строка подключения к MongoDB        |
+| `MONGODB_DB`  | Имя БД (по умолчанию `akfa_nakladnaya`) |
+| `DELETE_PIN`  | PIN для удаления накладных          |
 
-To learn more about Next.js, take a look at the following resources:
+## Структура
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```
+app/                Next.js App Router
+  page.tsx          Список накладных
+  new/page.tsx      Создание накладной
+  invoice/[id]/     Просмотр и печать
+components/         UI компоненты (SBox, SPill, NakladnayaDocument, ...)
+lib/
+  actions.ts        Server actions (Mongo I/O)
+  mongodb.ts        Подключение с reconnect-на-dev
+  store.ts          Zustand клиент-стор
+  types.ts          Типы домена
+  catalog.ts        Mock справочник товаров
+  pdf.ts            Экспорт в PDF через html2canvas+jspdf
+scripts/
+  clear-invoices.mjs  Утилита очистки коллекции
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Скрипты
 
-## Deploy on Vercel
+| Команда           | Что делает                          |
+|-------------------|-------------------------------------|
+| `npm run dev`     | Dev сервер (Turbopack)              |
+| `npm run build`   | Production билд                     |
+| `npm run start`   | Production сервер                   |
+| `npm run lint`    | ESLint                              |
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Деплой
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Любая платформа с Node 20+. Vercel — самый простой путь:
+1. Подключить репо
+2. Указать env vars в настройках проекта
+3. Deploy
+
+## Маршрут поддержки
+
+- Изменения в дизайне — токены в `app/globals.css` (`--ink`, `--accent`, `--paper-*`)
+- Бизнес-логика накладных — `lib/actions.ts` + `lib/schemas.ts`
+- Печатный шаблон — `components/NakladnayaDocument.tsx` + `@media print` в `globals.css`
