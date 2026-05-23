@@ -11,6 +11,7 @@ import ScreenHeader from '@/components/ScreenHeader';
 import NakladnayaDocument from '@/components/NakladnayaDocument';
 import SPill from '@/components/SPill';
 import SignaturePad from '@/components/SignaturePad';
+import { DEPARTMENT_LABEL } from '@/lib/types';
 
 type SignSlot = 'from' | 'driver' | null;
 
@@ -98,7 +99,7 @@ export default function InvoicePage({ params }: { params: Promise<{ id: string }
       {/* Header */}
       <div className="no-print">
         <ScreenHeader
-          title={`Накладная № ${invoice.number}`}
+          title={`Накладная № ${invoice.number} · ${DEPARTMENT_LABEL[invoice.department]}`}
           left={<ChevronLeft size={22} />}
           right={<MoreHorizontal size={20} />}
           onLeft={() => router.back()}

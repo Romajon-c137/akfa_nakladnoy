@@ -1,5 +1,19 @@
 export type InvoiceStatus = 'draft' | 'sent' | 'paid' | 'deleted';
 
+export type Department = 'glass' | 'aluminum';
+
+/** Per-department starting number for new invoices */
+export const DEPARTMENT_START: Record<Department, number> = {
+  glass: 60,
+  aluminum: 6,
+};
+
+/** Human-readable labels */
+export const DEPARTMENT_LABEL: Record<Department, string> = {
+  glass: 'Стекло',
+  aluminum: 'Алюминь',
+};
+
 export type InvoiceItem = {
   id: string;
   sku: string;
@@ -10,6 +24,7 @@ export type Invoice = {
   id: string;
   number: string;
   date: string;
+  department: Department;
   fromPerson?: string;
   vehicle?: string;
   driver?: string;

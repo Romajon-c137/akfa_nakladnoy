@@ -5,32 +5,12 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { useStore, computeTotal } from '@/lib/store';
 import { getInvoices } from '@/lib/actions';
-import { Invoice } from '@/lib/types';
+import { Invoice, Department, DEPARTMENT_LABEL } from '@/lib/types';
 import { Search, X, FileText, Loader2 } from 'lucide-react';
 import SBox from '@/components/SBox';
 import SFab from '@/components/SFab';
 
-type TimeFilter = 'today' | 'week' | 'month' | 'all';
-
-const TIME_FILTERS: { label: string; value: TimeFilter }[] = [
-  { label: 'Сегодня', value: 'today' },
-  { label: 'Неделя',  value: 'week'  },
-  { label: 'Месяц',   value: 'month' },
-  { label: 'Все',     value: 'all'   },
-];
-
-function filterByTime(invoices: Invoice[], f: TimeFilter): Invoice[] {
-  if (f === 'all') return invoices;
-  const now = Date.now();
-  const ms: Record<TimeFilter, number> = {
-    today: 86400000,
-    week:  7 * 86400000,
-    month: 30 * 86400000,
-    all:   Infinity,
-  };
-  const cutoff = now - ms[f];
-  return invoices.filter(i => new Date(i.createdAt).getTime() >= cutoff);
-}
+const DEPARTMENTS: Department[] = ['glass', 'aluminum'];
 
 function formatDateTime(iso: string): string {
   const d = new Date(iso);
@@ -44,7 +24,7 @@ function formatDateTime(iso: string): string {
 export default function HomePage() {
   const router = useRouter();
   const { invoices, loading, setInvoices, setLoading } = useStore();
-  const [timeFilter, setTimeFilter] = useState<TimeFilter>('all');
+  const [dept, setDept] = useState<Department>('glass');
   const [searchActive, setSearchActive] = useState(false);
   const [query, setQuery] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
@@ -62,13 +42,19 @@ export default function HomePage() {
   function closeSearch() { setSearchActive(false); setQuery(''); }
 
   const q = query.trim().toLowerCase();
-  const byTime = filterByTime(invoices, timeFilter);
+  const byDept = invoices.filter(inv => inv.department === dept);
   const filtered = q
-    ? byTime.filter(inv =>
+    ? byDept.filter((inv: Invoice) =>
         inv.number.toLowerCase().includes(q) ||
         (inv.fromPerson ?? '').toLowerCase().includes(q)
       )
-    : byTime;
+    : byDept;
+
+  // Counts per department for badges on tabs
+  const counts: Record<Department, number> = {
+    glass: invoices.filter(i => i.department === 'glass').length,
+    aluminum: invoices.filter(i => i.department === 'aluminum').length,
+  };
 
   return (
     <div style={{ height: '100dvh', display: 'flex', flexDirection: 'column', background: 'var(--paper-dim)' }}>
@@ -107,7 +93,7 @@ export default function HomePage() {
             <div style={{ marginTop: 10, display: 'flex', alignItems: 'baseline', gap: 8 }}>
               <span style={{ fontSize: 26, fontWeight: 700, letterSpacing: -0.4, color: 'var(--ink)' }}>Накладные</span>
               <span style={{ fontSize: 12, fontWeight: 600, color: '#fff', background: 'var(--accent)', borderRadius: 999, padding: '2px 8px', lineHeight: 1.6 }}>
-                {invoices.length}
+                {byDept.length}
               </span>
             </div>
           </div>
@@ -116,33 +102,46 @@ export default function HomePage() {
         {/* Accent strip */}
         <div style={{ height: 3, background: 'var(--accent)' }} />
 
-        {/* Time filter chips */}
-          {/* <div style={{ display: 'flex', gap: 8, padding: '10px 14px', overflowX: 'auto', scrollbarWidth: 'none' }}>
-            {TIME_FILTERS.map(f => {
-              const active = timeFilter === f.value;
-              return (
-                <button
-                  key={f.value}
-                  onClick={() => setTimeFilter(f.value)}
-                  style={{
-                    padding: '6px 14px',
-                    borderRadius: 999,
-                    border: `1px solid ${active ? 'var(--accent)' : 'var(--border)'}`,
-                    background: active ? 'var(--accent)' : '#fff',
-                    color: active ? '#fff' : 'var(--ink-soft)',
-                    fontSize: 13,
-                    fontWeight: 600,
-                    whiteSpace: 'nowrap',
-                    flexShrink: 0,
-                    cursor: 'pointer',
-                    transition: 'all 0.15s ease',
-                  }}
-                >
-                  {f.label}
-                </button>
-              );
-            })}
-          </div> */}
+        {/* Department tabs */}
+        <div style={{ display: 'flex', gap: 8, padding: '10px 14px', overflowX: 'auto', scrollbarWidth: 'none' }}>
+          {DEPARTMENTS.map(d => {
+            const active = dept === d;
+            return (
+              <button
+                key={d}
+                onClick={() => setDept(d)}
+                style={{
+                  padding: '7px 16px',
+                  borderRadius: 999,
+                  border: `1px solid ${active ? 'var(--accent)' : 'var(--border)'}`,
+                  background: active ? 'var(--accent)' : '#fff',
+                  color: active ? '#fff' : 'var(--ink-soft)',
+                  fontSize: 13,
+                  fontWeight: 600,
+                  whiteSpace: 'nowrap',
+                  flexShrink: 0,
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                }}
+              >
+                {DEPARTMENT_LABEL[d]}
+                <span style={{
+                  fontSize: 11,
+                  padding: '1px 6px',
+                  borderRadius: 999,
+                  background: active ? 'rgba(255,255,255,0.22)' : 'var(--paper-dim)',
+                  color: active ? '#fff' : 'var(--pencil)',
+                  minWidth: 18, textAlign: 'center',
+                }}>
+                  {counts[d]}
+                </span>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* ── List ── */}
@@ -155,9 +154,9 @@ export default function HomePage() {
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: 220, color: 'var(--pencil)', gap: 10 }}>
             <FileText size={40} strokeWidth={1.2} />
             <div style={{ fontSize: 15, fontWeight: 500 }}>
-              {q ? 'Ничего не найдено' : 'Нет накладных за этот период'}
+              {q ? 'Ничего не найдено' : `Нет накладных — ${DEPARTMENT_LABEL[dept]}`}
             </div>
-            {!q && timeFilter === 'all' && (
+            {!q && (
               <div style={{ fontSize: 13, color: 'var(--pencil)' }}>Нажмите + чтобы создать первую</div>
             )}
           </div>
@@ -204,8 +203,8 @@ export default function HomePage() {
       </div>
 
 
-      {/* FAB */}
-      <SFab onClick={() => router.push('/new')} style={{ position: 'fixed', right: 20, bottom: 28, zIndex: 25 }} />
+      {/* FAB — creates invoice in currently selected department */}
+      <SFab onClick={() => router.push(`/new?dept=${dept}`)} style={{ position: 'fixed', right: 20, bottom: 28, zIndex: 25 }} />
     </div>
   );
 }

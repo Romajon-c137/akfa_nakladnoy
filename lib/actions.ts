@@ -3,12 +3,13 @@
 import { cookies, headers } from 'next/headers';
 import { createHash, randomBytes } from 'crypto';
 import { invoices, rateLimits, type InvoiceDoc } from './mongodb';
-import { Invoice } from './types';
+import { Invoice, Department, DEPARTMENT_START } from './types';
 import {
   InvoiceSchema,
   InvoicePatchSchema,
   InvoiceIdSchema,
   PinSchema,
+  DepartmentSchema,
 } from './schemas';
 
 const SESSION_COOKIE = 'akfa_sid';
@@ -20,7 +21,8 @@ const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000; // forget failures after 1h
 
 function toInvoice(doc: InvoiceDoc): Invoice {
   const { _id, ...rest } = doc;
-  return { ...rest, id: _id };
+  // Backfill department for invoices created before the department feature
+  return { ...rest, id: _id, department: rest.department ?? 'glass' };
 }
 
 async function clientFingerprint(): Promise<string> {
@@ -63,14 +65,21 @@ export async function getInvoiceById(id: string): Promise<Invoice | null> {
   return doc ? toInvoice(doc) : null;
 }
 
-export async function getNextNumber(): Promise<string> {
+export async function getNextNumber(department: Department = 'glass'): Promise<string> {
+  const dept = DepartmentSchema.parse(department);
+  const start = DEPARTMENT_START[dept];
   const col = await invoices();
-  const docs = await col.find({}, { projection: { number: 1 } }).toArray();
+  // Per-department counter, ignoring deleted invoices (numbers are reusable)
+  // Missing `department` on legacy invoices is treated as 'glass'
+  const match = dept === 'glass'
+    ? { status: { $ne: 'deleted' as const }, $or: [{ department: 'glass' as const }, { department: { $exists: false } }] }
+    : { status: { $ne: 'deleted' as const }, department: dept };
+  const docs = await col.find(match, { projection: { number: 1 } }).toArray();
   const nums = docs
     .map(d => parseInt(d.number ?? '', 10))
     .filter(n => !isNaN(n));
-  if (nums.length === 0) return '60';
-  return String(Math.max(60, Math.max(...nums) + 1));
+  if (nums.length === 0) return String(start);
+  return String(Math.max(start, Math.max(...nums) + 1));
 }
 
 // ── Write ───────────────────────────────────────────────────────

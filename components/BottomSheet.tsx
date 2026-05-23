@@ -65,9 +65,14 @@ export default function BottomSheet({ open, onClose, onAdd, editItem, onEdit }: 
     setTimeout(() => { qtyInputRef.current?.focus(); qtyInputRef.current?.select(); }, 50);
   }
 
+  // Backdrop closes only when there's no entered data —
+  // protects against accidental taps wiping a half-filled form
+  const isDirty = sku.trim().length > 0 || qty !== (editItem?.qty ?? 1);
+  const handleBackdrop = () => { if (!isDirty) onClose(); };
+
   return (
     <>
-      <div className={`sheet-backdrop${open ? ' open' : ''}`} onClick={onClose} />
+      <div className={`sheet-backdrop${open ? ' open' : ''}`} onClick={handleBackdrop} />
 
       <div className={`sheet-panel${open ? ' open' : ''}`} style={{ padding: '10px 18px 36px' }}>
         {/* Drag handle */}

@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 export const InvoiceStatusSchema = z.enum(['draft', 'sent', 'paid', 'deleted']);
+export const DepartmentSchema = z.enum(['glass', 'aluminum']);
 
 export const InvoiceItemSchema = z.object({
   id:  z.string().trim().min(1).max(20),
@@ -21,6 +22,7 @@ export const InvoiceSchema = z.object({
   id:              z.string().trim().min(1).max(50),
   number:          z.string().trim().min(1).max(10),
   date:            isoDate,
+  department:      DepartmentSchema.default('glass'),
   fromPerson:      z.string().trim().max(100).optional().default(''),
   vehicle:         z.string().trim().max(30).optional().default(''),
   driver:          z.string().trim().max(60).optional().default(''),

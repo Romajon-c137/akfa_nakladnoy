@@ -1,11 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { Suspense, useEffect, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { X, ChevronLeft } from 'lucide-react';
 
 import { useStore, computeTotal } from '@/lib/store';
-import { InvoiceItem } from '@/lib/types';
+import { InvoiceItem, Department, DEPARTMENT_LABEL } from '@/lib/types';
 import { createInvoice, updateInvoice as updateInvoiceDB, getNextNumber } from '@/lib/actions';
 
 import ScreenHeader from '@/components/ScreenHeader';
@@ -28,9 +28,24 @@ const TRANS = 'opacity 0.28s ease, transform 0.3s cubic-bezier(0.34,1.2,0.64,1)'
 const uid = () => Math.random().toString(36).slice(2, 10);
 const todayISO = () => new Date().toISOString().slice(0, 10);
 
+function readDept(p: ReturnType<typeof useSearchParams>): Department {
+  const v = p.get('dept');
+  return v === 'aluminum' ? 'aluminum' : 'glass';
+}
+
 export default function NewPage() {
+  return (
+    <Suspense fallback={<div style={{ height: '100dvh', background: 'var(--paper-dim)' }} />}>
+      <NewPageInner />
+    </Suspense>
+  );
+}
+
+function NewPageInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { addInvoice, updateInvoice } = useStore();
+  const [department] = useState<Department>(() => readDept(searchParams));
 
   // ── Draft state ────────────────────────────────────────────────
   const [savedId]  = useState(uid);
@@ -51,14 +66,14 @@ export default function NewPage() {
   const [saved, setSaved] = useState(false);
   const [signSlot, setSignSlot] = useState<SignSlot>(null);
 
-  // Authoritative number from server
+  // Authoritative number from server, per department
   useEffect(() => {
-    getNextNumber().then(setNumber).catch(() => {});
-  }, []);
+    getNextNumber(department).then(setNumber).catch(() => {});
+  }, [department]);
 
   const totalQty = computeTotal(items);
   const invoice = {
-    id: savedId, number, date, fromPerson, vehicle, driver,
+    id: savedId, number, date, department, fromPerson, vehicle, driver,
     signatureFrom, signatureDriver, items,
     status: 'draft' as const, createdAt: '', updatedAt: '',
   };
@@ -123,7 +138,7 @@ export default function NewPage() {
         transition: TRANS,
       }}>
         <ScreenHeader
-          title="Новая накладная"
+          title={`Новая накладная · ${DEPARTMENT_LABEL[department]}`}
           left={<X size={18} />}
           right="Сохр."
           onLeft={() => router.back()}
